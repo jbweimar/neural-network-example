@@ -11,15 +11,22 @@ class MNISTData:
         training_data, \
         validation_data, \
         test_data = pickle.load(f, encoding='latin1')
-        training_data_x = list(training_data[0])
-        training_data_y = list(training_data[1])
-        zipped_training_data = zip(training_data_x, training_data_y)
-        self.training_data = [(dx, dy) for dx, dy in zipped_training_data]
-        test_data_x = list(test_data[0])
-        test_data_y = list(test_data[1])
-        zipped_test_data = zip(test_data_x, test_data_y)
-        self.test_data = [(dx, dy) for dx, dy in zipped_test_data]
+        self.training_data = self._correct_data(training_data, True)
+        self.test_data = self._correct_data(test_data, False)
+
+    def _correct_data(self, data, shouldVectorize):
+        data_x = [np.reshape(x, 784, 1) for x in data[0]]
+        if shouldVectorize:
+            data_y = [self._one_hot_encoded_digit(y) for y in data[1]]
+        else:
+            data_y = [y for y in data[1]]
+        return [(dx, dy) for dx, dy in zip(data_x, data_y)]
     
+    def _one_hot_encoded_digit(self, y):
+        e = np.zeros((10))
+        e[y] = 1.0
+        return e
+
 data = MNISTData()
 data.load()
 
@@ -59,7 +66,7 @@ class Network:
                 self.update_b_w(batch, eta, cost_derivative)
             if test_data:
                 print('Epoch {0}: {1} / {2}'.format(
-                    j, self.evaluate(test_data), len(test_data)))
+                    j + 1, self.evaluate(test_data), len(test_data)))
             else:
                 print('Epoch {0} complete'.format(i))
 
@@ -72,8 +79,8 @@ class Network:
             batch_dw = [bdw+sdw for bdw, sdw in zip(batch_dw, single_dw)]
         zipped_b = zip(self.b_vectors, batch_db)
         zipped_w = zip(self.w_matrices, batch_dw)
-        self.b_vectors = [b - (eta*db/len(batch)) for b, db in zipped_b]
-        self.w_matrices = [w - (eta*dw/len(batch)) for w, dw in zipped_w]
+        self.b_vectors = [b - (eta/len(batch))*db for b, db in zipped_b]
+        self.w_matrices = [w - (eta/len(batch))*dw for w, dw in zipped_w]
 
     def backpropagate(self, x, y, cost_derivative):
         db = [np.zeros(b.shape) for b in self.b_vectors]
@@ -107,19 +114,19 @@ class Network:
             for (x, y) in test_data]
         return sum(int(x == y) for (x, y) in results)
 
+    def test(self):
+        self.SGD(
+            epochs=30, 
+            data=data.training_data, 
+            batch_size=10,
+            eta=3.0,
+            cost_derivative=MSE_derivative,
+            test_data=data.test_data)
+
 def MSE_derivative(output_a, y):
     return (output_a - y)
 
 network = Network(sizes=[784, 30, 10])
-network.SGD(
-    epochs=30, 
-    data=data.training_data, 
-    batch_size=10,
-    eta=3.0,
-    cost_derivative=MSE_derivative,
-    test_data=data.test_data)
-
-
 
 
 
