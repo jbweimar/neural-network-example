@@ -17,10 +17,47 @@ class Network:
         self.C_prime = C_prime
         self.init_weights_and_biases()
  
+    def SGD_learn(self,
+        training_data,
+        test_data,
+        batch_size,
+        rate,
+        epochs):
+        self.init_weights_and_biases() # 1.
+        for epoch in range(0, epochs): # 2.
+            batches = self._get_batches(training_data, batch_size) # 2.1
+            for X, Y in batches: # 2.2 & 2.2.1
+                dBs, dWs = self.backprop(X, Y)
+                self.bs -= rate * dBs / batch_size # 2.2.6
+                self.Ws -= rate * dWs / batch_size
+            if test_data != None: 
+                self.display_accuracy(epoch, test_data) # 2.3
+   
+    def backprop(self, X, Y):
+        Zs, As = self._get_Zs_As(X) # 2.2.2
+        batch_size = np.size(X, 0)
+        sp = self.sigmas[-1].f_prime(Zs[-1])
+        Delta = self.C_prime(As[-1], Y) * sp # 2.2.3 (M3)
+        dBs = np.empty_like(self.bs) # 2.2.4
+        dWs = np.empty_like(self.Ws)
+        dBs[-1] = np.ones(batch_size).T @ Delta # (M1)
+        dWs[-1] = Delta.T @ As[-2] # (M2)
+        for l in range(2, len(self.layers)): # 2.2.5
+            sp = self.sigmas[-l].f_prime(Zs[-l])
+            Delta = Delta @ self.Ws[-l+1] * sp # 2.2.5.1 (M3)
+            dBs[-l] = np.ones(batch_size).T @ Delta # 2.2.5.2 (M1)
+            dWs[-l] = Delta.T @ As[-l-1] # (M2)
+        return dBs, dWs
+
     def init_weights_and_biases(self):
         self.bs = [np.random.randn(l) / np.sqrt(l) for l in self.layers[1:]]
         dims = zip(self.layers[1:], self.layers[:-1])
         self.Ws = [np.random.randn(v, w) / np.sqrt(w) for v, w in dims]
+
+    def display_accuracy(self, epoch, data):
+        correct = sum(int(self._get_digit_for_x(x) == y) for x, y in data)
+        print('Epoch {0}: {1:.2f}%'.format(
+            epoch + 1, 100 * correct / len(data)))
  
     def _get_batches(self, data, size):
         indices = np.random.permutation(len(data[0]))
@@ -51,40 +88,3 @@ class Network:
             a = self.sigmas[l].f(W @ a + b)
             l += 1
         return np.argmax(a)
-
-    def display_accuracy(self, epoch, data):
-        correct = sum(int(self._get_digit_for_x(x) == y) for x, y in data)
-        print('Epoch {0}: {1:.2f}%'.format(
-                    epoch + 1, 100 * correct / len(data)))
-
-    def SGD_learn(self,
-        training_data,
-        test_data,
-        batch_size,
-        rate,
-        epochs):
-        self.init_weights_and_biases() # 1.
-        for epoch in range(0, epochs): # 2.
-            batches = self._get_batches(training_data, batch_size) # 2.1
-            for X, Y in batches: # 2.2 & 2.2.1
-                dBs, dWs = self.backprop(X, Y)
-                self.bs -= rate * dBs / batch_size # 2.2.6
-                self.Ws -= rate * dWs / batch_size
-            if test_data != None: 
-                self.display_accuracy(epoch, test_data) # 2.3
-            
-    def backprop(self, X, Y):
-        Zs, As = self._get_Zs_As(X) # 2.2.2
-        batch_size = np.size(X, 0)
-        sp = self.sigmas[-1].f_prime(Zs[-1])
-        Delta = self.C_prime(As[-1], Y) * sp # 2.2.3 (M3)
-        dBs = np.empty_like(self.bs) # 2.2.4
-        dWs = np.empty_like(self.Ws)
-        dBs[-1] = np.ones(batch_size).T @ Delta # (M1)
-        dWs[-1] = Delta.T @ As[-2] # (M2)
-        for l in range(2, len(self.layers)): # 2.2.5
-            sp = self.sigmas[-l].f_prime(Zs[-l])
-            Delta = Delta @ self.Ws[-l+1] * sp # 2.2.5.1 (M3)
-            dBs[-l] = np.ones(batch_size).T @ Delta # 2.2.5.2 (M1)
-            dWs[-l] = Delta.T @ As[-l-1] # (M2)
-        return dBs, dWs
