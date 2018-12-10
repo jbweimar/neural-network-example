@@ -18,7 +18,7 @@ class Network:
         self.init_weights_and_biases()
  
     def init_weights_and_biases(self):
-        self.Bs = [np.random.randn(l) / np.sqrt(l) for l in self.layers[1:]]
+        self.bs = [np.random.randn(l) / np.sqrt(l) for l in self.layers[1:]]
         dims = zip(self.layers[1:], self.layers[:-1])
         self.Ws = [np.random.randn(v, w) / np.sqrt(w) for v, w in dims]
  
@@ -35,7 +35,7 @@ class Network:
         A = X
         l = 0
         rows = np.size(X, 0)
-        for b, W in zip(self.Bs, self.Ws):
+        for b, W in zip(self.bs, self.Ws):
             B = np.tile(b, (rows, 1))
             Z = A @ W.transpose() + B # (FF1)
             A = self.sigmas[l].f(Z) # (FF2)
@@ -44,9 +44,21 @@ class Network:
             l -= 1
         return Zs, As
  
-    def display_accuracy(data):
-        print("1")
-        
+    def _feedforward(self, x):
+        a = x
+        l = 0
+        for b, W in zip(self.bs, self.Ws):
+            a = self.sigmas[l].f(W @ a + b)
+            l += 1
+        return a
+
+    def display_accuracy(self, epoch, data):
+        results_x = [np.argmax(_feedforward(x)) for x in data[0]]
+        results_y = [np.argmax(y) for y in data[1]]
+        correct = sum(int(results_x == results_y))
+        print("")
+
+
     def SGD_learn(self,
         training_data,
         test_data,
@@ -58,7 +70,7 @@ class Network:
             batches = self._get_batches(training_data, batch_size) # 2.1
             for X, Y in batches: # 2.2 & 2.2.1
                 dBs, dWs = self.backprop(X, Y)
-                self.Bs -= rate * dBs / batch_size # 2.2.6
+                self.bs -= rate * dBs / batch_size # 2.2.6
                 self.Ws -= rate * dWs / batch_size
                 if test_data != None: 
                     display_accuracy(test_data) # 2.3
@@ -68,7 +80,7 @@ class Network:
         batch_size = np.size(X, 0)
         sp = self.sigmas[-1].f_prime(Zs[-1])
         Delta = self.C_prime(As[-1], Y) * sp # 2.2.3 (M3)
-        dBs = np.empty_like(self.Bs) # 2.2.4
+        dBs = np.empty_like(self.bs) # 2.2.4
         dWs = np.empty_like(self.Ws)
         dBs[-1] = np.ones(batch_size).T @ Delta # (M1)
         dWs[-1] = Delta.T @ As[-2] # (M2)
