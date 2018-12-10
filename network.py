@@ -44,6 +44,9 @@ class Network:
             l -= 1
         return Zs, As
  
+    def display_accuracy(data):
+        print("1")
+        
     def SGD_learn(self,
         training_data,
         test_data,
@@ -55,8 +58,10 @@ class Network:
             batches = self._get_batches(training_data, batch_size) # 2.1
             for X, Y in batches: # 2.2 & 2.2.1
                 dBs, dWs = self.backprop(X, Y)
-                self.Bs -= rate * dBs / batch_size
+                self.Bs -= rate * dBs / batch_size # 2.2.6
                 self.Ws -= rate * dWs / batch_size
+                if test_data != None: 
+                    display_accuracy(test_data) # 2.3
                 
     def backprop(self, X, Y):
         Zs, As = self._get_Zs_As(X) # 2.2.2
@@ -71,6 +76,6 @@ class Network:
         for l in range(2, len(self.layers)): # 2.2.5
             sp = self.sigmas[-l].f_prime(Zs[-l])
             Delta = Delta @ self.Ws[-l+1] * sp # 2.2.5.1 (M3)
-            dBs[-l] = np.ones(batch_size).T @ Delta # (M1)
+            dBs[-l] = np.ones(batch_size).T @ Delta # 2.2.5.2 (M1)
             dWs[-l] = Delta.T @ As[-l-1].T # (M2)
         return dBs, dWs
