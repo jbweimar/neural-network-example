@@ -44,20 +44,18 @@ class Network:
             l -= 1
         return Zs, As
  
-    def _feedforward(self, x):
+    def _get_digit_for_x(self, x):
         a = x
         l = 0
         for b, W in zip(self.bs, self.Ws):
             a = self.sigmas[l].f(W @ a + b)
             l += 1
-        return a
+        return np.argmax(a)
 
     def display_accuracy(self, epoch, data):
-        results_x = [np.argmax(_feedforward(x)) for x in data[0]]
-        results_y = [np.argmax(y) for y in data[1]]
-        correct = sum(int(results_x == results_y))
-        print("")
-
+        correct = sum(int(self._get_digit_for_x(x) == y) for x, y in data)
+        print('Epoch {0}: {1:.2f}%'.format(
+                    epoch + 1, 100 * correct / len(data)))
 
     def SGD_learn(self,
         training_data,
@@ -66,15 +64,15 @@ class Network:
         rate,
         epochs):
         self.init_weights_and_biases() # 1.
-        for e in range(0, epochs): # 2.
+        for epoch in range(0, epochs): # 2.
             batches = self._get_batches(training_data, batch_size) # 2.1
             for X, Y in batches: # 2.2 & 2.2.1
                 dBs, dWs = self.backprop(X, Y)
                 self.bs -= rate * dBs / batch_size # 2.2.6
                 self.Ws -= rate * dWs / batch_size
-                if test_data != None: 
-                    display_accuracy(test_data) # 2.3
-                
+            if test_data != None: 
+                self.display_accuracy(epoch, test_data) # 2.3
+            
     def backprop(self, X, Y):
         Zs, As = self._get_Zs_As(X) # 2.2.2
         batch_size = np.size(X, 0)
@@ -84,10 +82,9 @@ class Network:
         dWs = np.empty_like(self.Ws)
         dBs[-1] = np.ones(batch_size).T @ Delta # (M1)
         dWs[-1] = Delta.T @ As[-2] # (M2)
-        print(np.shape(dWs[-1]))
         for l in range(2, len(self.layers)): # 2.2.5
             sp = self.sigmas[-l].f_prime(Zs[-l])
             Delta = Delta @ self.Ws[-l+1] * sp # 2.2.5.1 (M3)
             dBs[-l] = np.ones(batch_size).T @ Delta # 2.2.5.2 (M1)
-            dWs[-l] = Delta.T @ As[-l-1].T # (M2)
+            dWs[-l] = Delta.T @ As[-l-1] # (M2)
         return dBs, dWs
