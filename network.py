@@ -62,17 +62,15 @@ class Network:
         Zs, As = self._get_Zs_As(X) # 2.2.2
         batch_size = np.size(X, 0)
         sp = self.sigmas[-1].f_prime(Zs[-1])
-        Delta = self.C_prime(As[-1], Y) * sp # 2.2.3 (E3)
+        Delta = self.C_prime(As[-1], Y) * sp # 2.2.3 (M3)
         dBs = np.empty_like(self.Bs) # 2.2.4
         dWs = np.empty_like(self.Ws)
-        dBs[-1] = np.ones(batch_size).T @ Delta # (E1)
-        dWs[-1] = Delta.T @ As[-2] # (E2)
+        dBs[-1] = np.ones(batch_size).T @ Delta # (M1)
+        dWs[-1] = Delta.T @ As[-2] # (M2)
         print(np.shape(dWs[-1]))
         for l in range(2, len(self.layers)): # 2.2.5
             sp = self.sigmas[-l].f_prime(Zs[-l])
-            Delta = Delta @ self.Ws[-l+1] * sp # 2.2.5.1 (E3)
-            dBs[-l] = np.ones(batch_size).T @ Delta # (E1)
-            dWs[-l] = Delta.T @ As[-l-1].T # (E2)
-            print(np.shape(As[-l-1].T))
-            print(np.shape(Delta))
+            Delta = Delta @ self.Ws[-l+1] * sp # 2.2.5.1 (M3)
+            dBs[-l] = np.ones(batch_size).T @ Delta # (M1)
+            dWs[-l] = Delta.T @ As[-l-1].T # (M2)
         return dBs, dWs
