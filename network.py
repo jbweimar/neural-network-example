@@ -78,7 +78,7 @@ class Network:
             A = self.sigmas[l].f(Z) # (FF2)
             As.append(A)
             Zs.append(Z)
-            l -= 1
+            l += 1
         return Zs, As
  
     def _get_digit_for_x(self, x):
