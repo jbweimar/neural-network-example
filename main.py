@@ -15,7 +15,7 @@ sigmoid = functions.ActivationSigmoid()
 
 network = network.Network(
     layers=[784, 100, 10],
-    sigmas=[relu, relu, sigmoid],
+    sigmas=[relu, sigmoid],
     C_prime=functions.cost_ce_prime)
 
 network.SGD_learn(
